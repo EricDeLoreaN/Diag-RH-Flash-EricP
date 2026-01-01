@@ -78,6 +78,8 @@ extended_palette = (
 st.title("📊 Diagnostic Flash RH_Eric PELTIER")
 
 # --- SIDEBAR ---
+st.sidebar.image("https://github.com/EricDeLoreaN/Diag-RH-Flash-EricP/blob/main/logoE2.png?raw=true", width=180)
+
 st.sidebar.header("1. Données Sources")
 uploaded_files = st.sidebar.file_uploader("Chargez vos fichiers", accept_multiple_files=True)
 
