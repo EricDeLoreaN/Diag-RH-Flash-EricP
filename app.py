@@ -5,7 +5,7 @@ import plotly.express as px
 import re
 
 # --- CONFIGURATION DE LA PAGE ---
-st.set_page_config(page_title="Diagnostic Flash RH_Eric PELTIER", layout="wide")
+st.set_page_config(page_title="Diag Flash RH_Eric PELTIER", layout="wide")
 
 # ==========================================
 # 🔒 SÉCURITÉ
@@ -24,7 +24,7 @@ def check_password():
 
 if not st.session_state.authenticated:
     st.title("🔒 Accès Restreint")
-    st.markdown("### Outil Diagnostic Flash RH_Eric PELTIER")
+    st.markdown("### Outil Diag Flash RH")
     st.text_input("Veuillez saisir le mot de passe :", type="password", key="password_input", on_change=check_password)
     st.stop()
 
@@ -61,8 +61,7 @@ def extract_year(filename):
     match = re.search(r'20\d{2}', filename)
     return int(match.group(0)) if match else None
 
-# --- PALETTE DE COULEURS ÉTENDUE ---
-# Fusion de plusieurs palettes pour avoir plus de nuances
+# PALETTE COULEURS
 extended_palette = (
     px.colors.qualitative.G10 + 
     px.colors.qualitative.T10 + 
@@ -75,7 +74,7 @@ extended_palette = (
 # ==========================================
 # 🚀 APPLICATION
 # ==========================================
-st.title("📊 Diagnostic Flash RH_Eric PELTIER")
+st.title("📊 Diag Flash RH_Eric PELTIER")
 
 # --- SIDEBAR ---
 st.sidebar.image("https://github.com/EricDeLoreaN/Diag-RH-Flash-EricP/blob/main/logoE2.png?raw=true", width=180)
@@ -134,8 +133,7 @@ if not combined_df.empty:
 
     # --- TAB 1 : FLUX ---
     with tabs[0]:
-        st.header("Histogrammes décalés (Théorique Vs Réel)")
-        
+        st.header("Histogrammes décalés pour analyser les évolutions réelles Vs théoriques")
         c_var, c_start, c_end = st.columns(3)
         var_analyse = c_var.radio("Axe", ["Âge", "Ancienneté"], horizontal=True)
         y_start = c_start.selectbox("Année Base (Passé)", sorted_years, index=0)
@@ -143,7 +141,6 @@ if not combined_df.empty:
         
         st.markdown("---")
         c_filt_type, c_filt_val = st.columns(2)
-        
         filter_opts = ["Effectif Global"]
         if 'SERVICE' in combined_df.columns: filter_opts.append("Service")
         if 'EMPLOI' in combined_df.columns: filter_opts.append("Emploi")
@@ -155,13 +152,11 @@ if not combined_df.empty:
         if filter_mode != "Effectif Global":
             map_col = {"Service": "SERVICE", "Emploi": "EMPLOI", "Sexe": "SEXE"}
             col_target = map_col[filter_mode]
-            
             df_p_temp = data_dict[str(y_start)]
             df_c_temp = data_dict[str(y_end)]
             vals_p = set(df_p_temp[col_target].dropna().unique()) if col_target in df_p_temp.columns else set()
             vals_c = set(df_c_temp[col_target].dropna().unique()) if col_target in df_c_temp.columns else set()
             possible_vals = sorted(list(vals_p | vals_c))
-            
             selected_val = c_filt_val.selectbox(f"Choisir {filter_mode} :", possible_vals)
 
         if y_start and y_end:
@@ -197,10 +192,8 @@ if not combined_df.empty:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(x=vc_proj.index, y=vc_proj.values, name=f"Théorique ({y_start} + {shift} ans)", line=dict(color='orange', width=2, dash='dash')))
                     fig.add_trace(go.Scatter(x=vc_reel.index, y=vc_reel.values, name=f"Réel ({y_end})", fill='tozeroy', line=dict(color='#1f77b4', width=3)))
-                    
                     title_graph = f"Histogramme Décalé - {filter_mode}"
                     if selected_val: title_graph += f" : {selected_val}"
-                        
                     fig.update_layout(title=title_graph, xaxis_title=label_x, yaxis_title="Effectif", hovermode="x unified")
                     st.plotly_chart(fig, use_container_width=True)
             else:
@@ -208,7 +201,7 @@ if not combined_df.empty:
 
     # --- TAB 2 : STRUCTURE & TRAJECTOIRES ---
     with tabs[1]:
-        st.header("Diagrammes triangulaires (Comparer les structures d'âge ou d'ancienneté et leurs évolutions dans le temps)")
+        st.header("Diagrammes triangulaires pour analyser les structures d'âge et d'ancienneté des populations au travail et leurs évolutions dans le temps")
         
         c1, c2, c3 = st.columns(3)
         mode_visu = c1.radio("Visualisation", ["Photo (1 année)", "Trajectoire (Comparaison)"])
@@ -216,7 +209,7 @@ if not combined_df.empty:
         critere = c3.selectbox("Critère", ["Générationnel (Âge)", "Ancienneté"])
 
         st.markdown("---")
-        cs1, cs2 = st.columns(2)
+        cs1, cs2, cs3 = st.columns(3)
         if critere == "Générationnel (Âge)":
             val_col = 'AGE_CALC'
             s_low = cs1.slider("Âge Max 'Jeunes'", 20, 40, 30)
@@ -227,6 +220,8 @@ if not combined_df.empty:
             s_low = cs1.slider("Anc. Max 'Nouveaux'", 1, 10, 5)
             s_high = cs2.slider("Anc. Min 'Anciens'", 10, 30, 15)
             lbl_x, lbl_y = f"% Anciens (>{s_high} ans)", f"% Nouveaux (<{s_low} ans)"
+        
+        show_labels = cs3.checkbox("Afficher les noms sur le graphique", value=False)
 
         def get_stats(df_in, group_col, val_col, low, high, min_eff):
             if val_col not in df_in.columns: return pd.DataFrame()
@@ -245,6 +240,34 @@ if not combined_df.empty:
 
         st.markdown("---")
         
+        # --- CALCUL INTELLIGENT DE L'ECHELLE ---
+        def calculate_smart_range(df, cols_to_check):
+            # On récupère toutes les valeurs (X et Y) pour voir l'étendue
+            all_vals = []
+            for col in cols_to_check:
+                if col in df.columns:
+                    all_vals.extend(df[col].dropna().tolist())
+            
+            if not all_vals: return [-5, 105]
+
+            min_v = min(all_vals)
+            max_v = max(all_vals)
+            
+            # On ajoute un "padding" proportionnel
+            padding = max(5, (max_v - min_v) * 0.15) 
+            
+            return [min_v - padding, max_v + padding]
+
+        # STYLE DES AXES
+        axis_style = dict(
+            showline=True, 
+            linewidth=2, 
+            linecolor='black', 
+            mirror=True,
+            showgrid=True,
+            gridcolor='lightgray'
+        )
+
         if mode_visu == "Photo (1 année)":
             y_photo = st.selectbox("Année", sorted_years, index=len(sorted_years)-1)
             all_groups = sorted(data_dict[str(y_photo)][grp_tri].dropna().unique())
@@ -268,13 +291,23 @@ if not combined_df.empty:
                 df_viz = get_stats(df_source, grp_tri, val_col, s_low, s_high, min_eff_global)
                 
                 if not df_viz.empty:
-                    fig = px.scatter(df_viz, x='Pct_High', y='Pct_Low', size='Effectif', color='Groupe', text='Groupe',
-                                     title=f"Carte {y_photo}", labels={'Pct_High': lbl_x, 'Pct_Low': lbl_y}, size_max=60,
-                                     color_discrete_sequence=extended_palette) # PALETTE ETENDUE
-                    fig.add_shape(type="line", x0=50, y0=0, x1=50, y1=100, line=dict(color="lightgray", dash="dot"))
-                    fig.add_shape(type="line", x0=0, y0=50, x1=100, y1=50, line=dict(color="lightgray", dash="dot"))
-                    fig.update_traces(textposition='top center')
-                    fig.update_layout(xaxis=dict(range=[-5, 105]), yaxis=dict(range=[-5, 105]))
+                    # FIX : Appel de la bonne fonction 'calculate_smart_range'
+                    dynamic_range = calculate_smart_range(df_viz, ['Pct_High', 'Pct_Low'])
+
+                    fig = px.scatter(df_viz, x='Pct_High', y='Pct_Low', size='Effectif', color='Groupe', 
+                                     text='Groupe' if show_labels else None,
+                                     title=f"Carte {y_photo}", labels={'Pct_High': lbl_x, 'Pct_Low': lbl_y}, 
+                                     size_max=45,
+                                     color_discrete_sequence=extended_palette)
+                    
+                    if show_labels:
+                        fig.update_traces(textposition='top center')
+                    
+                    fig.update_layout(
+                        xaxis=dict(range=dynamic_range, **axis_style),
+                        yaxis=dict(range=dynamic_range, **axis_style)
+                    )
+                    
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.warning(f"Aucun groupe ne dépasse {min_eff_global} personnes.")
@@ -310,22 +343,30 @@ if not combined_df.empty:
                 
                 if not viz_1.empty and not viz_2.empty:
                     merged = pd.merge(viz_1, viz_2, on='Groupe', suffixes=('_start', '_end'))
-                    
+                    dynamic_range = calculate_smart_range(merged, ['Pct_High_start', 'Pct_Low_start', 'Pct_High_end', 'Pct_Low_end'])
+
                     fig = go.Figure()
                     for i, row in merged.iterrows():
-                        color = extended_palette[i % len(extended_palette)] # PALETTE ETENDUE
+                        color = extended_palette[i % len(extended_palette)]
+                        # Point Départ
                         fig.add_trace(go.Scatter(x=[row['Pct_High_start']], y=[row['Pct_Low_start']], mode='markers',
-                                                 marker=dict(symbol='circle-open', size=10, color=color), name=f"{row['Groupe']} ({y_deb})", showlegend=False))
-                        fig.add_trace(go.Scatter(x=[row['Pct_High_end']], y=[row['Pct_Low_end']], mode='markers+text',
-                                                 marker=dict(symbol='circle', size=12, color=color), text=row['Groupe'], textposition='top center',
-                                                 name=f"{row['Groupe']} ({y_fin})", showlegend=False))
+                                                 marker=dict(symbol='circle-open', size=10, color=color), name=f"{row['Groupe']} ({y_deb})", 
+                                                 showlegend=False, hoverinfo='name+x+y'))
+                        # Point Arrivée
+                        mode_point = 'markers+text' if show_labels else 'markers'
+                        fig.add_trace(go.Scatter(x=[row['Pct_High_end']], y=[row['Pct_Low_end']], mode=mode_point,
+                                                 marker=dict(symbol='circle', size=12, color=color), 
+                                                 text=row['Groupe'] if show_labels else None, 
+                                                 textposition='top center',
+                                                 name=f"{row['Groupe']} ({y_fin})", showlegend=False, hoverinfo='name+x+y'))
+                        # Flèche
                         fig.add_annotation(x=row['Pct_High_end'], y=row['Pct_Low_end'], ax=row['Pct_High_start'], ay=row['Pct_Low_start'],
                                            xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor=color)
                     
                     fig.update_layout(title=f"Evolution {y_deb} -> {y_fin}", xaxis_title=lbl_x, yaxis_title=lbl_y,
-                                      xaxis=dict(range=[-5, 105]), yaxis=dict(range=[-5, 105]), height=700)
-                    fig.add_shape(type="line", x0=50, y0=0, x1=50, y1=100, line=dict(color="lightgray", dash="dot"))
-                    fig.add_shape(type="line", x0=0, y0=50, x1=100, y1=50, line=dict(color="lightgray", dash="dot"))
+                                      xaxis=dict(range=dynamic_range, **axis_style),
+                                      yaxis=dict(range=dynamic_range, **axis_style),
+                                      height=700)
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.warning("Données insuffisantes pour les groupes sélectionnés.")
@@ -343,14 +384,11 @@ if not combined_df.empty:
             abs_cols = [c for c in combined_df.columns if 'NB J' in c or 'NB H' in c or 'ABS' in c]
             metrics_abs = st.multiselect("Indicateurs", abs_cols, default=abs_cols[:2] if abs_cols else None)
 
-            # FILTRE AVEC OPTION "TOUS"
             sel_abs = None
             if grp_abs in cat_cols:
                 uniques = sorted(combined_df[grp_abs].dropna().unique())
-                
                 st.write("")
                 select_all_abs = st.checkbox("Tout sélectionner", value=False, key="all_abs")
-                
                 if select_all_abs:
                     sel_abs = st.multiselect("Filtrer les groupes :", uniques, default=uniques)
                 else:
@@ -389,18 +427,10 @@ if not combined_df.empty:
                     fig = px.bar(df_plot, x="Indicateur", y="Valeur", color=grp_abs, 
                                  title=f"Répartition Normalisée (100%) par {grp_abs}", 
                                  text_auto='.1f',
-                                 color_discrete_sequence=extended_palette) # PALETTE ETENDUE
+                                 color_discrete_sequence=extended_palette)
                     
-                    # C'EST ICI QUE LA MAGIE OPERE POUR LA LEGENDE
-                    fig.update_layout(
-                        barmode='stack', 
-                        barnorm='percent', 
-                        yaxis_title="Part (%)", 
-                        xaxis_title="", 
-                        height=600,
-                        legend_traceorder="reversed" # ALIGNE LA LEGENDE SUR L'ORDRE VISUEL
-                    )
-                    
+                    fig.update_layout(barmode='stack', barnorm='percent', yaxis_title="Part (%)", xaxis_title="", 
+                                      height=600, legend_traceorder="reversed")
                     fig.update_traces(hovertemplate='%{y:.1f}%<br>%{x}')
                     st.plotly_chart(fig, use_container_width=True)
 
