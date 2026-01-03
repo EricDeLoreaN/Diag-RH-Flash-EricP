@@ -32,7 +32,7 @@ if not st.session_state.authenticated:
         st.warning(f"Image '{LOGO_FILE}' introuvable.")
         
     st.title("🔒 Accès Restreint")
-    st.markdown("### Outil Diag Flash Données Sociales")
+    st.markdown("### Outil Diag Flash Données Sociales - Application conçue par Eric PELTIER")
     st.text_input("Veuillez saisir le mot de passe :", type="password", key="password_input", on_change=check_password)
     st.stop()
 
@@ -85,6 +85,10 @@ def extract_year(filename):
 def convert_df(df):
     return df.to_csv(index=False, sep=';', encoding='utf-8-sig')
 
+# --- FONCTION D'ASTUCE VISUELLE (NOUVEAU V17) ---
+def afficher_astuce_legende():
+    st.caption("💡 **Astuce interactive :** Cliquez sur les éléments de la **légende** (à droite du graphique) pour les masquer/afficher. Double-cliquez pour isoler un élément.")
+
 # PALETTE COULEURS GENERALE
 extended_palette = (
     px.colors.qualitative.G10 + 
@@ -115,37 +119,35 @@ if os.path.exists(LOGO_FILE):
 st.sidebar.title("Navigation")
 
 menu_options = [
-    "🔺 Pyramides & Ratios",
-    "📍 Cartographie Structures",
-    "🧿 Micro-Analyse",
-    "🚪 Analyse des Sorties (Turn-over)",
+    "🔺 Pyramides",
+    "📍 Diagrammes triangulaires",
+    "🧿 Ages Vs Anciennetés",
+    "🚪 Analyse du Turn-over",
     "📈 Évolution Effectifs",
     "📋 Types de Contrat",
-    "📉 Flux (Histo Décalé)",
+    "📉 Histogrammes décalés",
     "📊 Absentéisme (Évolution)",
     "⚖️ Absentéisme (Comparaison)",
     "💰 Autres (Promo/Form/Rém)",
     "📝 Restrictions Santé",
-    "📚 Ressources & Guides"
+    "📚 Ressources"
 ]
 
 selection_page = st.sidebar.radio("Aller vers :", menu_options)
 
 st.sidebar.markdown("---")
 
-# On cache les uploaders sur la page Ressources pour simplifier l'interface
-if selection_page != "📚 Ressources & Guides":
+# On cache les uploaders sur la page Ressources
+if selection_page != "📚 Ressources":
     st.sidebar.header("1. Données Effectifs (Stock)")
     uploaded_files = st.sidebar.file_uploader("Chargez vos fichiers annuels", accept_multiple_files=True)
 
     st.sidebar.header("2. Données Sorties (Flux)")
     uploaded_file_sorties = st.sidebar.file_uploader("Fichier 'Sorties' unique (Optionnel)", accept_multiple_files=False)
-
-    min_eff_global = st.sidebar.slider("Taille min. groupes", 1, 20, 3)
+    
 else:
     uploaded_files = []
     uploaded_file_sorties = None
-    min_eff_global = 3
 
 # --- TRAITEMENT FICHIERS STOCK ---
 data_dict = {}
@@ -218,70 +220,56 @@ if uploaded_file_sorties:
         df_sorties = df_s
         st.sidebar.success(f"✅ Sorties : {len(df_sorties)} lignes")
 
-st.title("Diag Flash Données Sociales_Application conçue par Eric PELTIER")
+st.title("📊 Diag Flash Données Sociales 📈")
+st.markdown("Application conçue par Eric PELTIER")
+
 
 # ==========================================
 # 📄 LOGIQUE DES PAGES
 # ==========================================
 
-# --- PAGE SPECIALE : RESSOURCES & GUIDES (NOUVEAU) ---
-if selection_page == "📚 Ressources & Guides":
-    st.header("📚 Bibliothèque de Ressources & Guides")
+# --- PAGE SPECIALE : RESSOURCES ---
+if selection_page == "📚 Ressources":
+    st.header("📚 Bibliothèque de Ressources")
     st.markdown("Accédez aux fiches pratiques (PDF) stockées localement et aux sites de référence.")
     
-    tab1, tab2 = st.tabs(["📄 Fiches Pratiques (PDF)", "🔗 Liens Utiles & Ouvrages"])
+    tab1, tab2 = st.tabs(["📄 Fiches Pratiques (PDF)", "🔗 Liens Utiles & Ouvrage de référence"])
     
     with tab1:
         st.subheader("Documents à télécharger")
-        # Détection AUTOMATIQUE des PDF dans le dossier 'ressources'
         folder_path = "ressources"
         if os.path.exists(folder_path):
             files = [f for f in os.listdir(folder_path) if f.lower().endswith('.pdf')]
             if files:
-                st.success(f"{len(files)} document(s) trouvé(s) dans le dossier 'ressources'.")
+                st.success(f"{len(files)} document(s) trouvé(s).")
                 for file_name in sorted(files):
                     file_path = os.path.join(folder_path, file_name)
                     with open(file_path, "rb") as f:
                         c1, c2 = st.columns([4, 1])
-                        with c1:
-                            st.write(f"📄 **{file_name}**")
-                        with c2:
-                            st.download_button(
-                                label="📥 Télécharger",
-                                data=f,
-                                file_name=file_name,
-                                mime="application/pdf",
-                                key=file_name
-                            )
+                        with c1: st.write(f"📄 **{file_name}**")
+                        with c2: st.download_button(label="📥 Télécharger", data=f, file_name=file_name, mime="application/pdf", key=file_name)
                     st.divider()
-            else:
-                st.info("📂 Le dossier 'ressources' est vide. Ajoutez vos fichiers PDF dedans pour qu'ils apparaissent ici.")
-        else:
-            st.warning("⚠️ Dossier 'ressources' introuvable. Veuillez créer un dossier nommé 'ressources' à côté de l'application.")
+            else: st.info("📂 Le dossier 'ressources' est vide.")
+        else: st.warning("⚠️ Dossier 'ressources' introuvable.")
 
     with tab2:
-        st.subheader("Sites Institutionnels & Ouvrages")
-        
+        st.subheader("Sites Institutionnels & Ouvrage de référence")
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🌐 Sites Web de Référence")
-            st.markdown("Des ressources pour approfondir les thématiques du travail.")
-            
             st.link_button("ANACT : Travail des Seniors", "https://www.anact.fr/travail-seniors", use_container_width=True)
-            st.link_button("GIS CREAPT (Cnam) : Expérience & Âge", "https://ceet.cnam.fr/partenariats/gis-creapt/centre-de-recherches-sur-l-experience-l-age-et-les-populations-au-travail-creapt--959490.kjsp", use_container_width=True)
-
+            st.link_button("GIS CREAPT (Cnam)", "https://ceet.cnam.fr/partenariats/gis-creapt/centre-de-recherches-sur-l-experience-l-age-et-les-populations-au-travail-creapt--959490.kjsp", use_container_width=True)
+            st.link_button("Code du Travail Numérique", "https://code.travail.gouv.fr", use_container_width=True)
         with c2:
             st.markdown("#### 📖 Bibliographie")
             st.markdown("**« La démographie du travail pour anticiper le vieillissement »**")
-            st.caption("De Serge Volkoff et Anne-Françoise Molinié")
-            st.markdown("Un ouvrage de référence sur l'ergonomie et la démographie du travail.")
-            
-            st.link_button("🔎 Voir la fiche de lecture (Anact)", "https://veille-travail.anact.fr/osiros/result/notice.php?queryosiros=id:31342&referer=home", use_container_width=True)
+            st.caption("De Serge Volkoff et Anne-Françoise Molinié, Editions de l'ANACT")
+            st.link_button("🔎 Voir la fiche de lecture", "https://veille-travail.anact.fr/osiros/result/notice.php?queryosiros=id:31342&referer=home", use_container_width=True)
 
-# --- BLOC D'ANALYSE CLASSIQUE (Si fichiers chargés) ---
+# --- BLOC D'ANALYSE CLASSIQUE ---
 elif not combined_df.empty or not df_sorties.empty:
     
-    if selection_page == "🔺 Pyramides & Ratios":
+    if selection_page == "🔺 Pyramides":
         if combined_df.empty: st.warning("Veuillez charger des fichiers Effectifs (Stock)."); st.stop()
         st.header("Analyse Structurelle : Pyramides et Indicateurs Clés")
         
@@ -315,12 +303,12 @@ elif not combined_df.empty or not df_sorties.empty:
                 nb_50plus = len(subset_df[subset_df['AGE_CALC'] >= 50])
                 ratio_renouv = (nb_30minus / nb_50plus * 100) if nb_50plus > 0 else 0
                 
-                kpi1.metric("Ratio de Basculement (Age ≥ 40 / Effectif total)", f"{ratio_basc:.1f}%")
+                kpi1.metric("Ratio de Basculement (Age ≥ 40 / Ensemble de l'effectif)", f"{ratio_basc:.1f}%")
                 if ratio_basc > 50: kpi1.error("⚠️ Processus de vieillissement (> 50%)")
                 else: kpi1.success("Structure jeune")
                 
                 txt_renouv = f"{ratio_renouv:.1f}%" if nb_50plus > 0 else "N/A (Pas de seniors)"
-                kpi2.metric("Ratio de Renouvellement (≤30 / ≥50)", txt_renouv)
+                kpi2.metric("Ratio de Renouvellement (≤30 ans / ≥50 ans)", txt_renouv)
                 if nb_50plus > 0:
                     if ratio_renouv < 100: kpi2.error("⚠️ Non remplacement des départs (< 100%)")
                     else: kpi2.success("Renouvellement assuré")
@@ -377,17 +365,23 @@ elif not combined_df.empty or not df_sorties.empty:
                     xaxis=dict(title=f"{lbl_axis} (Hommes à gauche / Femmes à droite)", tickformat="s"), yaxis=dict(title="Tranches")
                 )
             
+            afficher_astuce_legende() # AJOUT TIP
             st.plotly_chart(fig, use_container_width=True)
             csv_pyr = convert_df(df_g)
             st.download_button("📥 Télécharger (CSV)", data=csv_pyr, file_name='pyramide_data.csv', mime='text/csv')
 
-    elif selection_page == "📍 Cartographie Structures":
+    elif selection_page == "📍 Diagrammes triangulaires":
         if combined_df.empty: st.warning("Veuillez charger des fichiers Effectifs (Stock)."); st.stop()
         st.header("Cartographie Structurelle")
         c1, c2, c3 = st.columns(3)
         mode_visu = c1.radio("Mode", ["Statique (1 année)", "Dynamique (Évolution)"])
         grp_tri = c2.selectbox("Maille", cat_cols)
         critere = c3.selectbox("Critère", ["Âge", "Ancienneté"])
+        st.markdown("---")
+        
+        st.markdown("#### ⚙️ Paramètres d'affichage")
+        min_eff_carto = st.slider("Taille min. des groupes (0 = tout afficher)", 0, 20, 0, key="slider_min_eff")
+
         st.markdown("---")
         st.markdown("#### ⚙️ Réglage des Axes")
         c_min, c_max = st.columns(2)
@@ -434,7 +428,7 @@ elif not combined_df.empty or not df_sorties.empty:
             c_sel_static, c_all_static = st.columns([3, 1])
             with c_all_static:
                 st.write("")
-                sel_all_s = st.checkbox("Tout sélectionner", value=False, key="chk_all_stat")
+                sel_all_s = st.checkbox("Tout sélectionner", value=True, key="chk_all_stat")
             with c_sel_static:
                 if sel_all_s: sel_groups = st.multiselect("Filtrer:", all_groups, default=all_groups, key="ms_stat")
                 else: sel_groups = st.multiselect("Filtrer:", all_groups, default=all_groups[:10] if len(all_groups)>10 else all_groups, key="ms_stat")
@@ -442,11 +436,20 @@ elif not combined_df.empty or not df_sorties.empty:
             if sel_groups:
                 df_source = data_dict[str(y_photo)]
                 df_source = df_source[df_source[grp_tri].isin(sel_groups)]
-                df_viz = get_stats(df_source, grp_tri, val_col, s_low, s_high, min_eff_global)
+                df_viz = get_stats(df_source, grp_tri, val_col, s_low, s_high, min_eff_carto)
+                
+                nb_total_groups = len(df_source[grp_tri].unique())
+                nb_shown = len(df_viz)
+                nb_hidden = nb_total_groups - nb_shown
+                if nb_hidden > 0:
+                    st.warning(f"⚠️ {nb_hidden} groupes masqués (effectif < {min_eff_carto}).")
+
                 if not df_viz.empty:
                     fig = px.scatter(df_viz, x='Pct_High', y='Pct_Low', size='Effectif', color='Groupe', hover_name='Full_Name', text='Groupe' if show_labels else None, title=titre_graph, labels={'Pct_High': lbl_x, 'Pct_Low': lbl_y}, size_max=45, color_discrete_sequence=extended_palette)
                     if show_labels: fig.update_traces(textposition='top center')
                     fig.update_layout(height=700, xaxis=axis_style, yaxis=axis_style, legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02))
+                    
+                    afficher_astuce_legende() # AJOUT TIP
                     st.plotly_chart(fig, use_container_width=True)
 
         else: # DYNAMIQUE
@@ -460,7 +463,7 @@ elif not combined_df.empty or not df_sorties.empty:
             c_sel_traj, c_all_traj = st.columns([3, 1])
             with c_all_traj:
                 st.write("")
-                sel_all = st.checkbox("Tout sélectionner", value=False, key="chk_all_dyn")
+                sel_all = st.checkbox("Tout sélectionner", value=True, key="chk_all_dyn")
             with c_sel_traj:
                 if sel_all: sel_traj = st.multiselect("Groupes à comparer:", common_grps, default=common_grps, key="ms_dyn")
                 else: sel_traj = st.multiselect("Groupes à comparer:", common_grps, default=common_grps[:5] if len(common_grps)>5 else common_grps, key="ms_dyn")
@@ -468,8 +471,8 @@ elif not combined_df.empty or not df_sorties.empty:
             if sel_traj:
                 df_1 = data_dict[str(y_deb)][data_dict[str(y_deb)][grp_tri].isin(sel_traj)]
                 df_2 = data_dict[str(y_fin)][data_dict[str(y_fin)][grp_tri].isin(sel_traj)]
-                viz_1 = get_stats(df_1, grp_tri, val_col, s_low, s_high, min_eff_global)
-                viz_2 = get_stats(df_2, grp_tri, val_col, s_low, s_high, min_eff_global)
+                viz_1 = get_stats(df_1, grp_tri, val_col, s_low, s_high, min_eff_carto)
+                viz_2 = get_stats(df_2, grp_tri, val_col, s_low, s_high, min_eff_carto)
                 if not viz_1.empty and not viz_2.empty:
                     merged = pd.merge(viz_1, viz_2, on='Groupe', suffixes=('_start', '_end'))
                     fig = go.Figure()
@@ -480,11 +483,13 @@ elif not combined_df.empty or not df_sorties.empty:
                         fig.add_trace(go.Scatter(x=[row['Pct_High_end']], y=[row['Pct_Low_end']], mode=mode_point, marker=dict(symbol='circle', size=12, color=color), text=row['Groupe'] if show_labels else None, textposition='top center', name=f"{row['Full_Name_end']}", hovertext=f"{row['Full_Name_end']} ({y_fin})"))
                         fig.add_annotation(x=row['Pct_High_end'], y=row['Pct_Low_end'], ax=row['Pct_High_start'], ay=row['Pct_Low_start'], xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor=color)
                     fig.update_layout(title=titre_graph, xaxis_title=lbl_x, yaxis_title=lbl_y, height=700, xaxis=axis_style, yaxis=axis_style, legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)) 
+                    
+                    afficher_astuce_legende() # AJOUT TIP
                     st.plotly_chart(fig, use_container_width=True)
 
-    elif selection_page == "🧿 Micro-Analyse":
+    elif selection_page == "🧿 Ages Vs Anciennetés":
         if combined_df.empty: st.warning("Veuillez charger des fichiers Effectifs (Stock)."); st.stop()
-        st.header("🧿 Micro-Analyse : Croisement Âge / Ancienneté")
+        st.header("🧿 Croisement Âge / Ancienneté")
         c_yr_n, c_filt_n, c_col_n = st.columns(3)
         yr_nuage = c_yr_n.selectbox("Année", sorted_years, index=len(sorted_years)-1, key="nuage_year")
         opts_filter_nuage = ["Global"] + cat_cols
@@ -528,10 +533,12 @@ elif not combined_df.empty or not df_sorties.empty:
             fig.add_shape(type="line", x0=20, y0=0, x1=65, y1=45, line=dict(color="lightgray", dash="dot"))
             fig.update_traces(hovertemplate='<b>%{hovertext}</b><br>Âge: %{x}<br>Anc: %{y}<br><b>Effectif: %{marker.size}</b>')
             fig.update_layout(xaxis_title="Âge", yaxis_title="Ancienneté", height=650)
+            
+            afficher_astuce_legende() # AJOUT TIP
             st.plotly_chart(fig, use_container_width=True)
 
-    elif selection_page == "🚪 Analyse des Sorties (Turn-over)":
-        st.header("🚪 Analyse des Sorties (Turn-over)")
+    elif selection_page == "🚪 Analyse du Turn-over":
+        st.header("🚪 Analyse du Turn-over")
         
         if df_sorties.empty:
             st.info("ℹ️ Veuillez charger le fichier 'Sorties' dans le menu latéral (Zone 2) pour activer cet onglet.")
@@ -556,6 +563,8 @@ elif not combined_df.empty or not df_sorties.empty:
                         else: params_col['color_discrete_sequence'] = extended_palette
                         fig = px.bar(df_evo, x="ANNEE_SORTIE", y="Nombre de Sorties", color=dim_evo, title=f"Évolution des sorties par {dim_evo}", **params_col)
                     fig.update_layout(xaxis=dict(tickmode='linear'), xaxis_title="Année de Sortie")
+                    
+                    afficher_astuce_legende() # AJOUT TIP
                     st.plotly_chart(fig, use_container_width=True)
 
                 with tabs_sorties[1]:
@@ -575,6 +584,8 @@ elif not combined_df.empty or not df_sorties.empty:
                             else: params_col['color_discrete_sequence'] = extended_palette
                             if type_chart == "Camembert (Pie)": fig = px.pie(df_count, names=dim_rep, values="Count", title=f"Répartition par {dim_rep}", **params_col)
                             else: fig = px.bar(df_count, x=dim_rep, y="Count", color=dim_rep, title=f"Répartition par {dim_rep}", **params_col)
+                            
+                            afficher_astuce_legende() # AJOUT TIP
                             st.plotly_chart(fig, use_container_width=True)
                             st.markdown("##### Données détaillées"); st.dataframe(df_count, hide_index=True)
                         else: st.warning("Aucune donnée pour les années sélectionnées.")
@@ -616,6 +627,8 @@ elif not combined_df.empty or not df_sorties.empty:
                             fig_m.add_shape(type="line", x0=20, y0=0, x1=65, y1=45, line=dict(color="lightgray", dash="dot"))
                             fig_m.update_traces(hovertemplate='<b>%{hovertext}</b><br>Âge: %{x}<br>Anc: %{y}<br><b>Sorties: %{marker.size}</b>')
                             fig_m.update_layout(xaxis_title="Âge au départ", yaxis_title="Ancienneté au départ", height=600)
+                            
+                            afficher_astuce_legende() # AJOUT TIP
                             st.plotly_chart(fig_m, use_container_width=True)
                         else: st.warning("Aucune donnée avec ces filtres.")
                     else: st.error("Données d'âge ou d'ancienneté manquantes (Colonnes NAISSANCE/ENTREE).")
@@ -657,10 +670,12 @@ elif not combined_df.empty or not df_sorties.empty:
             fig = px.bar(df_grp, x="ANNEE_FICH", y="Count", color="CONTRAT", title=titre_ctr, color_discrete_sequence=extended_palette)
             fig.update_layout(barmode='stack', barnorm='percent', yaxis_title="% Effectif")
             fig.update_xaxes(type='category')
+            
+            afficher_astuce_legende() # AJOUT TIP
             st.plotly_chart(fig, use_container_width=True)
         else: st.info("Colonne 'TYPE CONTRAT' ou 'STATUT' non trouvée dans les fichiers.")
 
-    elif selection_page == "📉 Flux (Histo Décalé)":
+    elif selection_page == "📉 Histogrammes décalés":
         if combined_df.empty: st.warning("Veuillez charger des fichiers Effectifs (Stock)."); st.stop()
         st.header("Histogrammes décalés")
         c_var, c_start, c_end = st.columns(3)
@@ -735,6 +750,8 @@ elif not combined_df.empty or not df_sorties.empty:
                 df_viz_abs = pd.concat(final_data, ignore_index=True)
                 fig = px.bar(df_viz_abs, x="Category", y="Percentage", color=grp_abs, title=f"Évolution des poids : Effectif vs {ind_abs}", color_discrete_sequence=extended_palette)
                 fig.update_layout(barmode='stack', yaxis_title="Part (%)", xaxis_title="", legend_traceorder="reversed")
+                
+                afficher_astuce_legende() # AJOUT TIP
                 st.plotly_chart(fig, use_container_width=True)
         else: st.warning("Aucune donnée d'absentéisme pertinente détectée.")
 
@@ -765,6 +782,8 @@ elif not combined_df.empty or not df_sorties.empty:
                     df_plot = pd.concat(plot_data, ignore_index=True)
                     fig = px.bar(df_plot, x="Indicateur", y="Pct", color=grp_comp, title=f"Poids des services sur l'absentéisme (Cumul {min(years_comp)}-{max(years_comp)})", color_discrete_sequence=extended_palette)
                     fig.update_layout(barmode='stack', barnorm='percent', yaxis_title="Part (%)", legend_traceorder="reversed")
+                    
+                    afficher_astuce_legende() # AJOUT TIP
                     st.plotly_chart(fig, use_container_width=True)
                 else: st.warning("Pas de données sur la période.")
         else: st.warning("Pas de colonnes d'absentéisme.")
@@ -795,6 +814,8 @@ elif not combined_df.empty or not df_sorties.empty:
                     df_plot = pd.concat(plot_data, ignore_index=True)
                     fig = px.bar(df_plot, x="Indicateur", y="Pct", color=grp_oth, title=f"Poids relatifs (Cumul {min(years_oth)}-{max(years_oth)})", color_discrete_sequence=extended_palette)
                     fig.update_layout(barmode='stack', barnorm='percent', yaxis_title="Part (%)", legend_traceorder="reversed")
+                    
+                    afficher_astuce_legende() # AJOUT TIP
                     st.plotly_chart(fig, use_container_width=True)
                 else: st.warning("Pas de données non nulles sur la période.")
         else: st.info("Aucune colonne type 'Formation', 'Promotion' ou 'Rémunération' trouvée.")
@@ -824,5 +845,5 @@ elif not combined_df.empty or not df_sorties.empty:
 else:
     st.info("👈 Veuillez charger vos fichiers Excel ou CSV dans le menu à gauche.")
     st.markdown("---")
-    st.markdown("### Besoin d'aide ou de modèles ?")
-    st.markdown("Allez dans l'onglet **📚 Ressources & Guides** (même sans données chargées) pour accéder aux fiches pratiques.")
+    st.markdown("### Pour aller plus loin")
+    st.markdown("N'hésitez pas à vous rendre dans l'onglet **📚 Ressources** pour accéder à quelques documents et sites de référence sur la gestion des âges et le traitement des données sociales dans le but d'enrichir une démarche de prévention. Ressources accessibles sans charger de données")
